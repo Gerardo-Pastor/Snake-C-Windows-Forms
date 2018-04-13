@@ -14,75 +14,103 @@ namespace Snake
     {
         Random rand = new Random();
         Comida bit;
-        List<Comida> snake = new List<Comida>();
+        List<List<Comida>> objetos = new List<List<Comida>>();
         Graphics papel;
         Color background = Color.Black;
-        int dirx, diry, x, y,score;
-        bool gameOver, pausa;
+        int dirx, diry, x, y,score, level, speed;
+        bool gameOver, pausa, godmode;
 
         public Form1()
         {
             InitializeComponent();
             papel = pictureBox1.CreateGraphics();
-            timer1.Interval = 50;
-            button2.Hide();
+            speed = Convert.ToInt32(textBox1.Text);
+            timer1.Interval = speed;
+            button_Pausa.Hide();
         }
 
         private void timer1_Tick(object sender, EventArgs e)
         {
             if (!gameOver)
             {
-                snake.Add(new Comida(x, y, rand));
-                if ((bit.x == snake[snake.Count - 1].x) && (bit.y == snake[snake.Count - 1].y))
-                {
-                    bit = new Comida(rand.Next(0, 60), rand.Next(0, 45), rand);
-                    score++;
-                }
-                else
-                {
-                    snake[0].desdibuja(papel, background);
-                    snake.RemoveAt(0);
-                }
-
                 label1.Text = "Score: " + Convert.ToString(score);
                 x += dirx;
                 y += diry;
-                foreach (Comida parte in snake)
-                {
-                    parte.dibujar(papel);
-                    if ((parte.x == x*bit.size) && (parte.y == y*bit.size)) gameOver = true;
+                if (((x < 0 || x > 59) || (y < 0 || y > 44)) && !godmode) gameOver = true;
+                if (check_collision(x, y, objetos) && !godmode) gameOver = true;
+                objetos[0].Add(new Comida(x, y, rand));
 
-                    if ((x < 0 || x > 59) || (y < 0 || y > 44)) gameOver = true;
-                }
+                foreach (List<Comida> objeto in objetos)
+                    foreach(Comida parte in objeto)
+                        parte.dibujar(papel);
+
                 bit.dibujar(papel);
+                
+                move();
+                if (score >= 5)
+                {
+                    for (int i = 0; i < rand.Next(3, 4); i++)
+                        objetos.Add(add_obstaculo());
+                    level = 2;
+                }
+                if (score >= 10)
+                {
+                    level = 3;
+                }
+
+                if (score >= 15)
+                {
+                    level = 4;
+                }
+                
+                if (level == 2)
+                    timer1.Interval = speed - (score - 5) * 2;
+                if (score >= 15 && level == 3)
+                {
+                }
+
             }
             else
             {
                 timer1.Stop();
-                button2.Hide();
-                button1.Show();
+                button_Pausa.Hide();
+                button_start.Show();
+                checkBox1.Show();
+                textBox1.Show();
+                label2.Show();
                 papel.DrawEllipse(new Pen(Color.Red, 2), x*bit.size - 7, y*bit.size - 7, bit.size + 15, bit.size + 15);
                 papel.DrawString("Game Over", new Font("Arial", 50), new SolidBrush(Color.Yellow), new PointF(120, 180));
             }
         }
 
-        private void button1_Click(object sender, EventArgs e)
+        private void button_Start_Click(object sender, EventArgs e)
         {
             papel.Clear(background);
             rand = new Random(rand.Next(0, 1024));
             gameOver = false;
             pausa = false;
+            godmode = checkBox1.Checked;
+            speed = Convert.ToInt32(textBox1.Text);
+            timer1.Interval = speed;
             score = 0;
+            level = 1;
             x = 30;
             y = 22;
             diry = -1;
             dirx = 0;
-            snake = new List<Comida>();
-            bit = new Comida(rand.Next(0, 60), rand.Next(0, 44), rand);
+            objetos = new List<List<Comida>>();
+            objetos.Add(new List<Comida>());
+            bit = new Comida(rand.Next(0, 60), rand.Next(0, 44), Color.Yellow);
             for(int i  = 0; i < 4; i++)
-                snake.Add(new Comida(x, y+i, rand));
-            button1.Hide();
-            button2.Show();
+                objetos[0].Add(new Comida(x, y+i, rand));
+            foreach (List<Comida> objeto in objetos)
+                foreach (Comida parte in objeto)
+                    parte.dibujar(papel);
+            button_start.Hide();
+            checkBox1.Hide();
+            button_Pausa.Show();
+            textBox1.Hide();
+            label2.Hide();
             timer1.Start();
         }
 
@@ -117,7 +145,8 @@ namespace Snake
 
 
         }
-        private void button2_Click(object sender, EventArgs e)
+
+        private void button_Pausa_Click(object sender, EventArgs e)
         {
             if (pausa)
             {
@@ -132,5 +161,55 @@ namespace Snake
                 pausa = true;
             }
         }
+
+        private bool check_collision(int cordx, int cordy, List<List<Comida>> objetos)
+        {
+            foreach(List<Comida> objeto in objetos)
+                foreach(Comida a in objeto)
+                    if (a.x == cordx && a.y == cordy) return true;
+           return false;
+        }
+
+        private void move()
+        {
+            if (bit.x == x && bit.y == y)
+            {
+                bit = null;
+                while (bit == null)
+                {
+                    int newx = rand.Next(0, 60);
+                    int newy = rand.Next(0, 45);
+                    if (check_collision(newx, newy, objetos) == false)
+                        bit = new Comida(newx, newy, Color.Yellow);
+                }
+                score++;
+            }
+            else
+            {
+                objetos[0][0].desdibuja(papel, background);
+                objetos[0].RemoveAt(0);
+            }
+        }
+
+        private List<Comida> add_obstaculo()
+        {
+            List<Comida> obstaculo = new List<Comida>();
+            bool collision = true;
+            while (collision)
+            {
+                int newy = rand.Next(5, 40);
+                for (int newx = 5; newx < 55; newx++)
+                {
+                    if (check_collision(newx, newy, objetos) == false)
+                    {
+                        collision = false;
+                        if (rand.Next(0, 3) == 2)
+                            obstaculo.Add(new Comida(newx, newy, Color.Red));
+                    }
+                }
+            }
+            return obstaculo;
+        }
+
     }
 }
