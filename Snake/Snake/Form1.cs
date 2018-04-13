@@ -47,26 +47,21 @@ namespace Snake
                 bit.dibujar(papel);
                 
                 move();
-                if (score >= 5)
+                if (score >= 5 && level == 1)
                 {
                     for (int i = 0; i < rand.Next(3, 4); i++)
                         objetos.Add(add_obstaculo());
                     level = 2;
                 }
-                if (score >= 10)
+                if (score >= 10 && score !=4)
                 {
+                    timer1.Interval = speed - (score - 5) * 2;
                     level = 3;
                 }
 
                 if (score >= 15)
                 {
                     level = 4;
-                }
-                
-                if (level == 2)
-                    timer1.Interval = speed - (score - 5) * 2;
-                if (score >= 15 && level == 3)
-                {
                 }
 
             }
